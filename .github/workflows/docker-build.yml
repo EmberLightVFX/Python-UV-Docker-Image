@@ -1,0 +1,69 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: nicegui-uv:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Test Docker image
+      run: |
+        # Run a simple test to verify UV is installed
+        docker run --rm nicegui-uv:test which uv
+        
+        # Build and run the example app
+        docker run -d --name test-container -p 8080:8080 \
+          -v ${{ github.workspace }}/example/app:/app \
+          nicegui-uv:test
+        
+        # Wait for the app to start with retry logic
+        echo "Waiting for application to start..."
+        for i in {1..30}; do
+          if curl -f http://localhost:8080 >/dev/null 2>&1; then
+            echo "Application is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Application failed to start within 60 seconds"
+            docker logs test-container
+            exit 1
+          fi
+          echo "Attempt $i/30: Waiting for application to respond..."
+          sleep 2
+        done
+        
+        # Check if the container is still running
+        docker ps | grep test-container
+        
+        # Check the logs
+        docker logs test-container
+        
+        # Test if the app is responding
+        curl -f http://localhost:8080 || exit 1
+        
+        # Cleanup
+        docker stop test-container
+        docker rm test-container

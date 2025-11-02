@@ -1,0 +1,8 @@
+[project]
+name = "nicegui-uv-example"
+version = "0.1.0"
+description = "Example NiceGUI UV project"
+dependencies = [
+    "nicegui>=1.4.0",
+]
+requires-python = ">=3.8"
