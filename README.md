@@ -73,8 +73,6 @@ docker run -p 8080:8080 -v $(pwd)/app:/app nicegui-uv
 Create a `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
   nicegui-app:
     build: .
