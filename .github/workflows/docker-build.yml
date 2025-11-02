@@ -37,8 +37,21 @@ jobs:
           -v ${{ github.workspace }}/example/app:/app \
           nicegui-uv:test
         
-        # Wait for the app to start
-        sleep 10
+        # Wait for the app to start with retry logic
+        echo "Waiting for application to start..."
+        for i in {1..30}; do
+          if curl -f http://localhost:8080 >/dev/null 2>&1; then
+            echo "Application is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Application failed to start within 60 seconds"
+            docker logs test-container
+            exit 1
+          fi
+          echo "Attempt $i/30: Waiting for application to respond..."
+          sleep 2
+        done
         
         # Check if the container is still running
         docker ps | grep test-container

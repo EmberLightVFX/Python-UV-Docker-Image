@@ -10,9 +10,9 @@ if [ -f "/app/pyproject.toml" ]; then
     # Change to app directory
     cd /app
     
-    # Install dependencies using UV
-    # UV can sync dependencies from pyproject.toml
-    uv pip install --system .
+    # Install dependencies using UV to system Python
+    # Use --system flag to install to system Python instead of creating venv
+    uv pip install --system -e .
     
     echo "Dependencies installed successfully!"
 else
