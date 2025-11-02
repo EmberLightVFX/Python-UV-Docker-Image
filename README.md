@@ -6,6 +6,8 @@ A Docker image for your NiceGUI UV projects, based on the official NiceGUI Docke
 
 This Docker image is designed to run NiceGUI applications managed with UV (a fast Python package installer). Unlike the official NiceGUI images that expect a `main.py` at the root, this image expects a UV project structure with a `pyproject.toml` file.
 
+The image is based on the official UV Docker image (`ghcr.io/astral-sh/uv`) which includes UV pre-installed.
+
 ## Features
 
 - Based on Python 3.12-slim for minimal image size

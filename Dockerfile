@@ -1,21 +1,14 @@
-FROM python:3.12-slim
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 LABEL maintainer="EmberLightVFX"
 
-# Install system dependencies and UV
+# Install system dependencies that may be needed for some Python packages
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
     apt-get install -y --no-install-recommends \
-    curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
-
-# Install UV package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Add UV to PATH
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /app
 
