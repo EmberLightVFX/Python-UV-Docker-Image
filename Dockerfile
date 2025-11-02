@@ -1,23 +1,29 @@
+# Use a Python image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-LABEL maintainer="EmberLightVFX"
+# Setup a non-root user
+RUN groupadd --system --gid 999 nonroot \
+ && useradd --system --gid 999 --uid 999 --create-home nonroot
 
-# Install system dependencies that may be needed for some Python packages
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+LABEL maintainer="Jacob Danell <jacob@emberlight.se>"
 
+# Install the project into `/app`
 WORKDIR /app
 
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+
+# Ensure installed tools can be executed out of the box
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+
 # Copy the entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY docker-entrypoint.sh /resources/docker-entrypoint.sh
+RUN chmod +x /resources/docker-entrypoint.sh
 
 EXPOSE 8080
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=True
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["python", "main.py"]
+# Use the non-root user to run our application
+USER nonroot
+
+ENTRYPOINT ["/resources/docker-entrypoint.sh"]

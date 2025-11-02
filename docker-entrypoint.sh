@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting NiceGUI UV Docker Container..."
+echo "Starting UV Docker Container..."
 
 # Check if pyproject.toml exists
 if [ -f "/app/pyproject.toml" ]; then
@@ -21,4 +21,11 @@ else
 fi
 
 echo "Starting application..."
-exec "$@"
+if [ -f "/app/main.py" ]; then
+    exec python /app/main.py
+elif [ -f "/app/src/main.py" ]; then
+    exec python /app/src/main.py
+else
+    echo "Error: No main.py found in /app or /app/src"
+    exit 1
+fi

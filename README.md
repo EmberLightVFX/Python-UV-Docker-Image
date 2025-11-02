@@ -1,10 +1,10 @@
-# NiceGUI-UV-Dockerimage
+# Python UV Docker Image
 
-A Docker image for your NiceGUI UV projects, based on the official NiceGUI Docker setup but adapted for UV package manager.
+A Docker image for running Python applications managed with UV package manager, featuring automatic dependency installation and flexible project structures.
 
 ## Overview
 
-This Docker image is designed to run NiceGUI applications managed with UV (a fast Python package installer). Unlike the official NiceGUI images that expect a `main.py` at the root, this image expects a UV project structure with a `pyproject.toml` file.
+This Docker image is designed to run Python applications managed with UV (a fast Python package installer). The image automatically detects your project structure and runs your application, whether `main.py` is located directly in `/app` or under `/app/src`.
 
 The image is based on the official UV Docker image (`ghcr.io/astral-sh/uv`) which includes UV pre-installed.
 
@@ -14,18 +14,30 @@ The image is based on the official UV Docker image (`ghcr.io/astral-sh/uv`) whic
 - Uses UV package manager for fast dependency installation
 - Automatically installs dependencies from `pyproject.toml` on startup
 - Compatible with standard UV project structure
-- Exposes port 8080 by default
+- Flexible project layout detection (supports both `/app/main.py` and `/app/src/main.py`)
+- Exposes port 8080 by default (configurable)
 
 ## Usage
 
 ### Project Structure
 
-Your project should be organized as follows:
+Your project can be organized in two ways:
 
-```
+**Option 1: Main file in `/app`**
+```text
 your-project/
 ├── app/
 │   ├── main.py
+│   └── pyproject.toml
+└── docker-compose.yml (optional)
+```
+
+**Option 2: Main file in `/app/src`**
+```text
+your-project/
+├── app/
+│   ├── src/
+│   │   └── main.py
 │   └── pyproject.toml
 └── docker-compose.yml (optional)
 ```
@@ -34,18 +46,19 @@ your-project/
 
 ```toml
 [project]
-name = "your-nicegui-app"
+name = "your-python-app"
 version = "0.1.0"
-description = "Your NiceGUI application"
+description = "Your Python application"
 dependencies = [
-    "nicegui>=1.4.0",
+    "some-package>=1.0.0",
 ]
 requires-python = ">=3.8"
 ```
 
-### Example `main.py`
+### Example `main.py` (for web applications)
 
 ```python
+# For NiceGUI applications
 from nicegui import ui
 
 @ui.page('/')
@@ -54,6 +67,8 @@ def index():
     ui.button('Click me!', on_click=lambda: ui.notify('Clicked!'))
 
 ui.run(host='0.0.0.0', port=8080)
+
+# For other web frameworks, ensure they bind to 0.0.0.0:8080
 ```
 
 ### Running with Docker
@@ -62,10 +77,10 @@ ui.run(host='0.0.0.0', port=8080)
 
 ```bash
 # Build the image
-docker build -t nicegui-uv .
+docker build -t python-uv .
 
 # Run the container
-docker run -p 8080:8080 -v $(pwd)/app:/app nicegui-uv
+docker run -p 8080:8080 -v $(pwd)/app:/app python-uv
 ```
 
 #### Option 2: Using Docker Compose
@@ -74,7 +89,7 @@ Create a `docker-compose.yml`:
 
 ```yaml
 services:
-  nicegui-app:
+  python-app:
     build: .
     ports:
       - "8080:8080"
@@ -105,7 +120,10 @@ Then visit `http://localhost:8080` in your browser.
 
 1. On container startup, the entrypoint script checks for `/app/pyproject.toml`
 2. If found, UV installs all dependencies specified in the file
-3. The application starts by running `python main.py`
+3. The script automatically detects your main file:
+   - First checks for `/app/main.py`
+   - If not found, checks for `/app/src/main.py`
+4. Runs the detected main file with Python
 
 ## Environment Variables
 
@@ -113,7 +131,7 @@ Then visit `http://localhost:8080` in your browser.
 
 ## Port
 
-The container exposes port 8080 by default, which is the standard port for NiceGUI applications.
+The container exposes port 8080 by default. Make sure your application binds to `host='0.0.0.0'` and `port=8080` for external access.
 
 ## License
 

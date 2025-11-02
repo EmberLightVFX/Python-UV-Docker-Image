@@ -1,0 +1,94 @@
+name: Docker Build and Test
+
+on:
+  workflow_dispatch:
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.11.1
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.PAT }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5.8.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: latest=true
+          tags: type=raw,value=python3.12-bookworm-slim
+
+      - name: Meta version
+        run: echo "The Meta is ${{ steps.meta.outputs.tags }}"
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: VERSION=python3.12-bookworm-slim
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          # Run a simple test to verify UV is installed
+          docker run --rm python-uv:test which uv
+
+          # Build and run the example app
+          docker run -d --name test-container -p 8080:8080 \
+            -v ${{ github.workspace }}/example/app:/app \
+            python-uv:test
+
+          # Wait for the app to start with retry logic
+          echo "Waiting for application to start..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8080 >/dev/null 2>&1; then
+              echo "Application is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Application failed to start within 60 seconds"
+              docker logs test-container
+              exit 1
+            fi
+            echo "Attempt $i/30: Waiting for application to respond..."
+            sleep 2
+          done
+
+          # Check if the container is still running
+          docker ps | grep test-container
+
+          # Check the logs
+          docker logs test-container
+
+          # Test if the app is responding
+          curl -f http://localhost:8080 || exit 1
+
+          # Cleanup
+          docker stop test-container
+          docker rm test-container
