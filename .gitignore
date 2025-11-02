@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# UV/pip build artifacts in example
+example/app/.venv/
+example/app/build/
+example/app/*.egg-info/
