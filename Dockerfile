@@ -2,13 +2,16 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 # Setup a non-root user
-RUN groupadd --system --gid 999 nonroot \
- && useradd --system --gid 999 --uid 999 --create-home nonroot
+RUN groupadd --system --gid 1000 nonroot \
+ && useradd --system --gid 1000 --uid 1000 --create-home nonroot
 
 LABEL maintainer="Jacob Danell <jacob@emberlight.se>"
 
 # Install the project into `/app`
 WORKDIR /app
+
+# Change ownership of /app to nonroot user
+RUN chown -R nonroot:nonroot /app
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
@@ -22,8 +25,5 @@ RUN chmod +x /resources/docker-entrypoint.sh
 
 EXPOSE 8080
 ENV PYTHONUNBUFFERED=True
-
-# Use the non-root user to run our application
-USER nonroot
 
 ENTRYPOINT ["/resources/docker-entrypoint.sh"]

@@ -20,11 +20,19 @@ else
     echo "Skipping dependency installation"
 fi
 
+# Handle custom PUID/PGID if set
+if [ -n "$PUID" ] && [ -n "$PGID" ]; then
+    echo "Setting custom user ID $PUID and group ID $PGID..."
+    usermod -u $PUID nonroot 2>/dev/null || true
+    groupmod -g $PGID nonroot 2>/dev/null || true
+    chown -R $PUID:$PGID /app
+fi
+
 echo "Starting application..."
 if [ -f "/app/main.py" ]; then
-    exec python /app/main.py
+    exec su nonroot -c "python /app/main.py"
 elif [ -f "/app/src/main.py" ]; then
-    exec python /app/src/main.py
+    exec su nonroot -c "python /app/src/main.py"
 else
     echo "Error: No main.py found in /app or /app/src"
     exit 1
